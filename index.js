@@ -20,9 +20,9 @@ server.get('/', (req, res) => {
 });
 
 server.post('/api/register', (req, res) => {
-  let user = req.body;
-
-  Users.add(user)
+  let {username, password} = req.body;
+  const hash = bcrypt.hashSync(password, 14)
+  Users.add({username, password: hash})
     .then(saved => {
       res.status(201).json(saved);
     })
@@ -33,10 +33,11 @@ server.post('/api/register', (req, res) => {
 
 server.post('/api/login', (req, res) => {
   let { username, password } = req.body;
-
+  
   Users.findBy({ username })
     .first()
     .then(user => {
+      bcrypt.compareSync(password, user.password)
       if (user) {
         res.status(200).json({ message: `Welcome ${user.username}!` });
       } else {
@@ -59,7 +60,7 @@ server.get('/api/users', (req, res) => {
 server.get('/hash', (req, res) => {
   const name = req.query.name;
   // hash the name
-  const hash = bcrypt.hashSync("B4c0/\/", salt); // use bcryptjs to hash the name
+  const hash = bcrypt.hashSync(name, 14); // use bcryptjs to hash the name
   res.send(`the hash for ${name} is ${hash}`);
 });
 
