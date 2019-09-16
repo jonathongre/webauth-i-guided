@@ -3,7 +3,6 @@ const helmet = require('helmet');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const salt = bcrypt.genSaltSync(10);
-// let hash = bcrypt.hashSync("B4c0/\/", salt);
 
 const db = require('./database/dbConfig.js');
 const Users = require('./users/users-model.js');
@@ -37,8 +36,7 @@ server.post('/api/login', (req, res) => {
   Users.findBy({ username })
     .first()
     .then(user => {
-      bcrypt.compareSync(password, user.password)
-      if (user) {
+      if (user && bcrypt.compareSync(password, user.password)) {
         res.status(200).json({ message: `Welcome ${user.username}!` });
       } else {
         res.status(401).json({ message: 'Invalid Credentials' });
@@ -49,7 +47,7 @@ server.post('/api/login', (req, res) => {
     });
 });
 
-server.get('/api/users', (req, res) => {
+server.get('/api/users', userAuth, (req, res) => {
   Users.find()
     .then(users => {
       res.json(users);
@@ -66,3 +64,21 @@ server.get('/hash', (req, res) => {
 
 const port = process.env.PORT || 5000;
 server.listen(port, () => console.log(`\n** Running on port ${port} **\n`));
+
+function userAuth (req, res, next) {
+  const { username, password } = req.body;
+  Users.findBy({ username })
+  .first()
+  .then(user => {
+    bcrypt.compareSync(password, user.password)
+    if(user) {
+      next();
+    } else {
+      res.status(404).json({ error: "User not found" });
+    }
+  })
+  .catch(err => {
+    console.log(err);
+    res.status(500).json({ error: "Error finding user" });
+  })
+}
